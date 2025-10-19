@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from itertools import chain
 
 from django.contrib import messages
@@ -1259,6 +1259,44 @@ def dashboard_veterinarios(request):
             (total_atendidas / (total_programadas + total_atendidas)) * 100
         )
 
+    ahora = timezone.now()
+    fin_semana = ahora + timedelta(days=7)
+
+    citas_equipo_semana = (
+        Cita.objects.filter(
+            estado="programada",
+            fecha_hora__isnull=False,
+            fecha_hora__gte=ahora,
+            fecha_hora__lte=fin_semana,
+        )
+        .select_related("paciente", "veterinario", "paciente__propietario__user")
+        .order_by("fecha_hora")
+    )
+
+    proximos_turnos_equipo = citas_equipo_semana[:6]
+    solicitudes_recientes = (
+        Cita.objects.filter(estado="pendiente")
+        .select_related("paciente", "paciente__propietario__user")
+        .order_by("fecha_solicitada")[:5]
+    )
+
+    total_semana = citas_equipo_semana.count()
+    citas_hoy_total = (
+        Cita.objects.filter(
+            estado="programada",
+            fecha_hora__date=ahora.date(),
+        )
+        .exclude(fecha_hora__isnull=True)
+        .count()
+    )
+    citas_sin_horario_total = Cita.objects.filter(
+        estado="programada", fecha_hora__isnull=True
+    ).count()
+
+    porcentaje_semana = 0
+    if total_programadas:
+        porcentaje_semana = min(100, round((total_semana / total_programadas) * 100))
+
     resumen_global = {
         "total_veterinarios": veterinarios.count(),
         "citas_pendientes": total_pendientes,
@@ -1267,6 +1305,10 @@ def dashboard_veterinarios(request):
         "citas_canceladas": total_canceladas,
         "citas_en_proceso": citas_en_proceso,
         "tasa_cumplimiento": tasa_cumplimiento,
+        "citas_semana": total_semana,
+        "citas_hoy": citas_hoy_total,
+        "citas_sin_horario": citas_sin_horario_total,
+        "porcentaje_semana": porcentaje_semana,
     }
 
     vet_stats = []
@@ -1313,6 +1355,14 @@ def dashboard_veterinarios(request):
                 (citas_atendidas / (citas_programadas + citas_atendidas)) * 100
             )
 
+        citas_semana_vet = Cita.objects.filter(
+            veterinario=vet,
+            estado="programada",
+            fecha_hora__isnull=False,
+            fecha_hora__gte=ahora,
+            fecha_hora__lte=fin_semana,
+        ).count()
+
         vet_stats.append(
             {
                 "veterinario": vet,
@@ -1322,6 +1372,7 @@ def dashboard_veterinarios(request):
                 "citas_atendidas": citas_atendidas,
                 "citas_canceladas": citas_canceladas,
                 "citas_en_proceso": citas_en_proceso,
+                "citas_semana": citas_semana_vet,
                 "proximas_citas": proximas_citas,
                 "tasa_atencion": tasa_atencion,
                 "iniciales": iniciales,
@@ -1329,10 +1380,22 @@ def dashboard_veterinarios(request):
             }
         )
 
+    max_carga = max((stat["citas_en_proceso"] for stat in vet_stats), default=0)
+    for stat in vet_stats:
+        porcentaje_carga = 0
+        if max_carga:
+            porcentaje_carga = round((stat["citas_en_proceso"] / max_carga) * 100)
+        stat["porcentaje_carga"] = porcentaje_carga
+
     return render(
         request,
         "core/dashboard_veterinarios.html",
-        {"vet_stats": vet_stats, "resumen": resumen_global},
+        {
+            "vet_stats": vet_stats,
+            "resumen": resumen_global,
+            "proximos_turnos_equipo": proximos_turnos_equipo,
+            "solicitudes_recientes": solicitudes_recientes,
+        },
     )
 
 
