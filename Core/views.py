@@ -68,13 +68,43 @@ def landing(request):
         productos_destacados = Producto.objects.filter(disponible=True)[:6]
         total_productos = Producto.objects.filter(disponible=True).count()
 
+    citas_programadas = Cita.objects.filter(estado="programada").exclude(
+        fecha_hora__isnull=True
+    )
+    cita_proxima = (
+        citas_programadas.filter(fecha_hora__gte=timezone.now())
+        .order_by("fecha_hora")
+        .select_related("paciente", "veterinario", "paciente__propietario__user")
+        .first()
+    )
+
+    nombre_veterinario = ""
+    nombre_propietario = ""
+    if cita_proxima:
+        if cita_proxima.veterinario:
+            nombre_veterinario = (
+                cita_proxima.veterinario.get_full_name()
+                or cita_proxima.veterinario.username
+            )
+        propietario_user = cita_proxima.paciente.propietario.user
+        nombre_propietario = propietario_user.get_full_name() or propietario_user.username
+
+    context = {
+        "productos_destacados": productos_destacados,
+        "total_productos": total_productos,
+        "total_propietarios": Propietario.objects.count(),
+        "total_pacientes": Paciente.objects.count(),
+        "total_veterinarios": User.objects.filter(rol="VET").count(),
+        "total_citas_programadas": citas_programadas.count(),
+        "cita_proxima": cita_proxima,
+        "cita_proxima_veterinario": nombre_veterinario,
+        "cita_proxima_propietario": nombre_propietario,
+    }
+
     return render(
         request,
         "core/landing.html",
-        {
-            "productos_destacados": productos_destacados,
-            "total_productos": total_productos,
-        },
+        context,
     )
 
 
