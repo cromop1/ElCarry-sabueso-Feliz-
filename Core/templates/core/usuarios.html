@@ -1,0 +1,29 @@
+<!-- core/usuarios.html -->
+{% extends "core/dashboard.html" %}
+{% block content %}
+<h3>Listado de Usuarios</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Nombre completo</th>
+            <th>Email</th>
+            <th>Rol</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in usuarios %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.get_full_name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.get_rol_display }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4">No hay usuarios registrados</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

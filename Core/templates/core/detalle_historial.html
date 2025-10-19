@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+
+{% block title %}Detalle Historial{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Historial Médico - {{ historial.paciente.nombre }} ({{ historial.paciente.especie }})</h2>
+    
+    <hr>
+
+    <h4>Propietario</h4>
+    {% if historial.paciente.propietario %}
+        <p><strong>Nombre:</strong> {{ historial.paciente.propietario.first_name }} {{ historial.paciente.propietario.last_name }}</p>
+        <p><strong>Teléfono:</strong> {{ historial.paciente.propietario.telefono }}</p>
+        <p><strong>Email:</strong> {{ historial.paciente.propietario.email }}</p>
+        <p><strong>Dirección:</strong> {{ historial.paciente.propietario.direccion }}</p>
+    {% else %}
+        <p>Sin propietario registrado</p>
+    {% endif %}
+
+    <hr>
+
+    <h4>Detalles del Historial Médico</h4>
+    <p><strong>Fecha:</strong> {{ historial.fecha|date:"d/m/Y" }}</p>
+    <p><strong>Diagnóstico:</strong> {{ historial.diagnostico }}</p>
+    <p><strong>Tratamiento:</strong> {{ historial.tratamiento }}</p>
+    <p><strong>Notas:</strong> {{ historial.notas }}</p>
+
+    <a href="{% url 'historial_medico_vet' %}" class="btn btn-secondary mt-3">Volver al Historial</a>
+</div>
+{% endblock %}

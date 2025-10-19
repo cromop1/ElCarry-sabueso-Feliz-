@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% block title %}Atender Cita{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>Atender cita de {{ cita.paciente.nombre }}</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="diagnostico" class="form-label">Diagnóstico</label>
+            <textarea name="diagnostico" id="diagnostico" class="form-control" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="tratamiento" class="form-label">Tratamiento</label>
+            <textarea name="tratamiento" id="tratamiento" class="form-control"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="notas" class="form-label">Notas</label>
+            <textarea name="notas" id="notas" class="form-control"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="peso" class="form-label">Peso (kg)</label>
+            <input type="number" step="0.1" name="peso" id="peso" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label for="temperatura" class="form-label">Temperatura (°C)</label>
+            <input type="number" step="0.1" name="temperatura" id="temperatura" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label for="examenes" class="form-label">Exámenes realizados</label>
+            <textarea name="examenes" id="examenes" class="form-control"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="proximo_control" class="form-label">Próximo control</label>
+            <input type="date" name="proximo_control" id="proximo_control" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

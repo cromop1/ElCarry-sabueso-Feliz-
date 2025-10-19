@@ -1,0 +1,142 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Cita · Veterinaria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Reset básico */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="datetime-local"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #6c63ff;
+            box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            padding: 12px;
+            background-color: #6c63ff;
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #5952d4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Agendar cita</h2>
+    {% if messages %}
+        <div class="mt-4 space-y-2">
+            {% for message in messages %}
+                <div class="p-3 rounded-lg text-sm {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+
+        <div>
+            <label for="paciente">Mascota</label>
+            <select name="paciente" id="paciente" required>
+                {% for m in mascotas %}
+                    <option value="{{ m.id }}" {% if paciente_seleccionado and paciente_seleccionado.id == m.id %}selected{% endif %}>
+                        {{ m.nombre }} ({{ m.especie }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="rounded-md bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-700">
+            El equipo administrativo asignará al veterinario disponible una vez que registres la cita.
+        </div>
+
+        <div>
+            <label for="fecha_hora">Fecha y hora</label>
+            <input type="datetime-local" name="fecha_hora" id="fecha_hora" value="{{ request.POST.fecha_hora }}" required>
+        </div>
+
+        <div>
+            <label for="notas">Notas</label>
+            <textarea name="notas" id="notas"></textarea>
+        </div>
+
+        <button type="submit">Agendar cita</button>
+    </form>
+</div>
+
+</body>
+</html>

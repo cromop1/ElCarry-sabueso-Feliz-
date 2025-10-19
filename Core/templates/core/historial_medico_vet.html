@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+
+{% block title %}Historial Médico Veterinario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Historial Médico Completo</h2>
+
+    <!-- Filtros -->
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-5">
+            <input type="text" name="q" class="form-control" placeholder="Paciente, propietario, diagnóstico..." value="{{ query }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="desde" class="form-control" value="{{ fecha_desde }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="hasta" class="form-control" value="{{ fecha_hasta }}">
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+        </div>
+    </form>
+
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Paciente</th>
+                <th>Propietario</th>
+                <th>Fecha</th>
+                <th>Diagnóstico</th>
+                <th>Tratamiento</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for hist in historiales %}
+            <tr>
+                <td>{{ hist.paciente.nombre }}</td>
+                <td>
+                    {% if hist.paciente.propietario %}
+                        {{ hist.paciente.propietario.first_name }} {{ hist.paciente.propietario.last_name }}<br>
+                        Tel: {{ hist.paciente.propietario.telefono }}
+                    {% else %}
+                        Sin propietario
+                    {% endif %}
+                </td>
+                <td>{{ hist.fecha|date:"M. d, Y" }}</td>
+                <td>{{ hist.diagnostico|truncatechars:50 }}</td>
+                <td>{{ hist.tratamiento|truncatechars:50 }}</td>
+                <td>
+                    <a href="{% url 'detalle_historial' hist.id %}" class="btn btn-sm btn-info">Ver Detalle</a>
+                    
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No se encontraron historiales médicos.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

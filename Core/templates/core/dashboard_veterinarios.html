@@ -1,0 +1,61 @@
+{% extends "core/base.html" %}
+
+{% block title %}Dashboard Veterinarios{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Dashboard de Veterinarios</h2>
+
+    <div class="row g-4">
+        {% for stat in vet_stats %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">{{ stat.veterinario.get_full_name }}</h5>
+                        <small class="text-muted">{{ stat.veterinario.email }} | {{ stat.veterinario.telefono }}</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-around text-center mb-3">
+                        <div>
+                            <div class="h4 mb-0">{{ stat.citas_totales }}</div>
+                            <small class="text-secondary">Total Citas</small>
+                        </div>
+                        <div>
+                            <div class="h4 mb-0 text-warning">{{ stat.citas_pendientes }}</div>
+                            <small class="text-secondary">Pendientes</small>
+                        </div>
+                        <div>
+                            <div class="h4 mb-0 text-success">{{ stat.citas_atendidas }}</div>
+                            <small class="text-secondary">Atendidas</small>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-3 mb-2">Próximas Citas</h6>
+                    <ul class="list-group list-group-flush">
+                        {% for cita in stat.proximas_citas %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                            <div>
+                                <strong>{{ cita.paciente.nombre }}</strong> ({{ cita.paciente.especie }})<br>
+                                <small class="text-muted">{{ cita.fecha_hora|date:"M d, Y, g:i a" }}</small>
+                            </div>
+                            {% if cita.estado == "programada" %}
+                                <span class="badge bg-primary rounded-pill">Pendiente</span>
+                            {% elif cita.estado == "atendida" %}
+                                <span class="badge bg-success rounded-pill">Atendida</span>
+                            {% endif %}
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted py-2">No hay citas próximas</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No hay veterinarios registrados.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

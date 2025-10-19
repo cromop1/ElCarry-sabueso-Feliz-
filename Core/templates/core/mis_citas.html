@@ -1,0 +1,38 @@
+<!-- core/mis_citas.html -->
+{% extends "core/dashboard.html" %}
+{% block content %}
+<h3 class="text-xl fw-bold mb-3">Mis Citas</h3>
+<div class="list-group">
+    {% for cita in citas %}
+        <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div>
+                <h5 class="mb-1">{{ cita.paciente.nombre }}</h5>
+                <small class="text-muted">{{ cita.fecha_hora|date:"d/m/Y H:i" }}</small>
+                {% if cita.notas %}
+                    <p class="mb-0 text-muted small">{{ cita.notas }}</p>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                {% if cita.veterinario %}
+                    <span class="badge text-bg-primary">
+                        {{ cita.veterinario.get_full_name|default:cita.veterinario.username }}
+                    </span>
+                {% else %}
+                    <span class="badge text-bg-secondary">Sin veterinario</span>
+                {% endif %}
+                {% if cita.estado == "pendiente" %}
+                    <span class="badge text-bg-warning text-uppercase">Pendiente</span>
+                {% elif cita.estado == "programada" %}
+                    <span class="badge text-bg-success text-uppercase">Programada</span>
+                {% elif cita.estado == "atendida" %}
+                    <span class="badge text-bg-info text-uppercase">Atendida</span>
+                {% else %}
+                    <span class="badge text-bg-dark text-uppercase">{{ cita.estado }}</span>
+                {% endif %}
+            </div>
+        </div>
+    {% empty %}
+        <div class="list-group-item">No tienes citas registradas.</div>
+    {% endfor %}
+</div>
+{% endblock %}

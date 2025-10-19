@@ -1,0 +1,13 @@
+<h2>Registrar nueva mascota</h2>
+<form method="post">{% csrf_token %}
+    <label>Nombre:</label><input type="text" name="nombre" required><br>
+    <label>Especie:</label><input type="text" name="especie" required><br>
+    <label>Raza:</label><input type="text" name="raza"><br>
+    <label>Sexo:</label>
+    <select name="sexo" required>
+        <option value="Macho">Macho</option>
+        <option value="Hembra">Hembra</option>
+    </select><br>
+    <label>Fecha de nacimiento:</label><input type="date" name="fecha_nacimiento" required><br>
+    <button type="submit">Registrar mascota</button>
+</form>

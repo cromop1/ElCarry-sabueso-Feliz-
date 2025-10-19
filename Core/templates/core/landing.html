@@ -1,0 +1,109 @@
+{% extends 'core/base.html' %}
+{% block title %}Bienvenido - Veterinaria Sabueso Feliz{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-5">
+    <div class="col-lg-6">
+        <span class="badge bg-gradient rounded-pill mb-3" style="background: linear-gradient(90deg, #4e54c8, #8f94fb);">Cuidado integral para tus mascotas</span>
+        <h1 class="display-5 fw-bold text-primary">Sabueso Feliz</h1>
+        <p class="lead text-muted">Gestiona tus citas, descubre nuestros productos destacados y mantén el bienestar de tus compañeros peludos en un solo lugar.</p>
+        <div class="d-flex flex-wrap gap-3 mt-4">
+            <a href="{% url 'login' %}" class="btn btn-primary btn-lg px-4"><i class="bi bi-box-arrow-in-right me-2"></i>Ingresar al sistema</a>
+            <a href="{% url 'tienda' %}" class="btn btn-outline-primary btn-lg px-4"><i class="bi bi-basket3 me-2"></i>Visitar la tienda</a>
+            <a href="{% url 'registro_propietario' %}" class="btn btn-outline-secondary btn-lg px-4"><i class="bi bi-person-plus me-2"></i>Registrarme</a>
+        </div>
+    </div>
+    <div class="col-lg-6 text-center">
+        <img src="https://images.unsplash.com/photo-1568572933382-74d440642117?auto=format&fit=crop&w=900&q=80" alt="Veterinaria" class="img-fluid rounded-4 shadow-lg">
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 me-3">
+                        <i class="bi bi-calendar2-check fs-4"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Agenda inteligente</h5>
+                </div>
+                <p class="card-text text-muted">Solicita turnos para tus mascotas y permite que nuestro equipo administrativo asigne al veterinario ideal.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 me-3">
+                        <i class="bi bi-heart-pulse fs-4"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Veterinarios expertos</h5>
+                </div>
+                <p class="card-text text-muted">Profesionales especializados que registran diagnósticos, tratamientos y seguimientos clínicos.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 me-3">
+                        <i class="bi bi-shop fs-4"></i>
+                    </div>
+                    <h5 class="card-title mb-0">Tienda sin registro</h5>
+                </div>
+                <p class="card-text text-muted">Explora nuestros productos de alimentos, medicamentos y accesorios antes de iniciar sesión.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h2 class="h3 mb-1">Productos destacados</h2>
+        <p class="text-muted mb-0">{{ total_productos }} productos disponibles en la tienda online.</p>
+    </div>
+    <a href="{% url 'tienda' %}" class="btn btn-outline-primary"><i class="bi bi-arrow-right-circle me-1"></i>Ver tienda completa</a>
+</div>
+
+{% if productos_destacados %}
+    <div class="row g-4">
+        {% for producto in productos_destacados %}
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    {% if producto.imagen %}
+                        <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}">
+                    {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="bi bi-image text-secondary fs-1"></i>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <span class="badge bg-primary-subtle text-primary mb-2">{{ producto.get_categoria_display }}</span>
+                        <h5 class="card-title">{{ producto.nombre }}</h5>
+                        <p class="card-text text-muted small">{{ producto.descripcion|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="fw-bold text-primary fs-5">${{ producto.precio }}</span>
+                            <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-outline-primary btn-sm">Ver más</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">Aún no hay productos cargados en la tienda, pero nuestro equipo está trabajando en ello.</div>
+{% endif %}
+
+<div class="mt-5 p-4 rounded-4 bg-primary text-white shadow-lg">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+        <div>
+            <h3 class="h2">¿Eres parte del equipo?</h3>
+            <p class="mb-0">Accede al panel para gestionar citas, pacientes y el catálogo de la tienda.</p>
+        </div>
+        <a href="{% url 'login' %}" class="btn btn-light btn-lg px-4 text-primary fw-bold"><i class="bi bi-speedometer2 me-2"></i>Ir al panel</a>
+    </div>
+</div>
+{% endblock %}

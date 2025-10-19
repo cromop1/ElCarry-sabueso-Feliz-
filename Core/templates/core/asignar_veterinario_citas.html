@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+{% block title %}Asignar Veterinario{% endblock %}
+
+{% block content %}
+<div class="container mt-5 max-w-6xl">
+    <h2 class="mb-4 fw-bold text-dark">Citas Pendientes</h2>
+
+    {% if citas_pendientes %}
+        <div class="list-group">
+            {% for cita in citas_pendientes %}
+            <div class="list-group-item mb-3 shadow-sm rounded-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-semibold mb-1">{{ cita.paciente.nombre }} ({{ cita.paciente.especie }})</h5>
+                        <p class="mb-1">Propietario: {{ cita.paciente.propietario.user.get_full_name }}</p>
+                        <p class="mb-1">Fecha y Hora: {{ cita.fecha_hora|date:"M d, Y, g:i a" }}</p>
+                        <p class="mb-1">Notas: {{ cita.notas|default:"-" }}</p>
+                    </div>
+                    <form method="POST" class="d-flex gap-2 align-items-center">
+                        {% csrf_token %}
+                        <input type="hidden" name="cita" value="{{ cita.id }}">
+                        <select name="veterinario" class="form-select" required>
+                            <option value="" disabled selected>Seleccionar Veterinario</option>
+                            {% for vet in veterinarios %}
+                                <option value="{{ vet.id }}">{{ vet.get_full_name|default:vet.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-success fw-bold">Asignar</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            No hay citas pendientes para asignar.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

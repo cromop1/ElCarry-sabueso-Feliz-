@@ -1,0 +1,37 @@
+<!-- core/registrar_historial.html -->
+{% extends "core/dashboard.html" %}
+{% block content %}
+<h3>Registrar Historial Médico - {{ paciente.nombre }}</h3>
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-2">
+        <label>Diagnóstico</label>
+        <textarea name="diagnostico" class="form-control" required></textarea>
+    </div>
+    <div class="mb-2">
+        <label>Tratamiento</label>
+        <textarea name="tratamiento" class="form-control" required></textarea>
+    </div>
+    <div class="mb-2">
+        <label>Notas</label>
+        <textarea name="notas" class="form-control"></textarea>
+    </div>
+    <div class="mb-2">
+        <label>Peso (kg)</label>
+        <input type="number" step="0.01" name="peso" class="form-control">
+    </div>
+    <div class="mb-2">
+        <label>Temperatura (°C)</label>
+        <input type="number" step="0.1" name="temperatura" class="form-control">
+    </div>
+    <div class="mb-2">
+        <label>Exámenes</label>
+        <textarea name="examenes" class="form-control"></textarea>
+    </div>
+    <div class="mb-2">
+        <label>Próximo Control</label>
+        <input type="date" name="proximo_control" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-success">Registrar</button>
+</form>
+{% endblock %}
