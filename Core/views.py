@@ -206,54 +206,84 @@ def dashboard(request):
             veterinario=user
         ).order_by("-fecha")
     elif user.rol == "OWNER":
-        propietario = get_object_or_404(Propietario, user=user)
-
-        mascotas = list(
-            Paciente.objects.filter(propietario=propietario).order_by("nombre")
-        )
-        citas_queryset = (
-            Cita.objects.filter(paciente__propietario=propietario)
-            .select_related("paciente", "veterinario")
-            .order_by("-fecha_solicitada", "-fecha_hora")
-        )
-        citas = list(citas_queryset)
-        historiales_queryset = (
-            HistorialMedico.objects.filter(paciente__propietario=propietario)
-            .select_related("paciente", "veterinario")
-            .order_by("-fecha")
-        )
-        historiales = list(historiales_queryset)
-
-        ahora = timezone.now()
-        citas_confirmadas = [c for c in citas if c.fecha_hora]
-        citas_confirmadas.sort(key=lambda cita: cita.fecha_hora)
-        citas_proximas = [c for c in citas_confirmadas if c.fecha_hora >= ahora]
-        citas_pasadas = [c for c in citas_confirmadas if c.fecha_hora < ahora]
-        citas_pasadas.sort(key=lambda cita: cita.fecha_hora, reverse=True)
-        citas_pendientes = [c for c in citas if not c.fecha_hora]
-
-        context.update(
-            {
-                "mis_mascotas": mascotas,
-                "mis_citas": citas,
-                "mis_historiales": historiales,
-                "proxima_cita": citas_proximas[0] if citas_proximas else None,
-                "citas_proximas": citas_proximas[:5],
-                "citas_recientes": citas_pasadas[:5],
-                "citas_pendientes": citas_pendientes,
-                "historiales_recientes": historiales[:5],
-                "estadisticas_propietario": {
-                    "mascotas": len(mascotas),
-                    "citas_activas": len(citas_proximas) + len(citas_pendientes),
-                    "informes": len(historiales),
-                    "profesionales": len(
-                        {c.veterinario_id for c in citas if c.veterinario_id}
-                    ),
-                },
-            }
-        )
-
         productos_disponibles = _producto_table_available()
+        propietario = (
+            Propietario.objects.select_related("user")
+            .filter(user=user)
+            .first()
+        )
+
+        if propietario is None:
+            messages.warning(
+                request,
+                "Tu perfil de propietario aún no está completo. Solicita al equipo administrativo que registre tus datos para acceder a todas las funciones.",
+            )
+            context.update(
+                {
+                    "propietario_incompleto": True,
+                    "mis_mascotas": [],
+                    "mis_citas": [],
+                    "mis_historiales": [],
+                    "proxima_cita": None,
+                    "citas_proximas": [],
+                    "citas_recientes": [],
+                    "citas_pendientes": [],
+                    "historiales_recientes": [],
+                    "estadisticas_propietario": {
+                        "mascotas": 0,
+                        "citas_activas": 0,
+                        "informes": 0,
+                        "profesionales": 0,
+                    },
+                }
+            )
+        else:
+            mascotas = list(
+                Paciente.objects.filter(propietario=propietario).order_by("nombre")
+            )
+            citas_queryset = (
+                Cita.objects.filter(paciente__propietario=propietario)
+                .select_related("paciente", "veterinario")
+                .order_by("-fecha_solicitada", "-fecha_hora")
+            )
+            citas = list(citas_queryset)
+            historiales_queryset = (
+                HistorialMedico.objects.filter(paciente__propietario=propietario)
+                .select_related("paciente", "veterinario")
+                .order_by("-fecha")
+            )
+            historiales = list(historiales_queryset)
+
+            ahora = timezone.now()
+            citas_confirmadas = [c for c in citas if c.fecha_hora]
+            citas_confirmadas.sort(key=lambda cita: cita.fecha_hora)
+            citas_proximas = [c for c in citas_confirmadas if c.fecha_hora >= ahora]
+            citas_pasadas = [c for c in citas_confirmadas if c.fecha_hora < ahora]
+            citas_pasadas.sort(key=lambda cita: cita.fecha_hora, reverse=True)
+            citas_pendientes = [c for c in citas if not c.fecha_hora]
+
+            context.update(
+                {
+                    "mis_mascotas": mascotas,
+                    "mis_citas": citas,
+                    "mis_historiales": historiales,
+                    "proxima_cita": citas_proximas[0] if citas_proximas else None,
+                    "citas_proximas": citas_proximas[:5],
+                    "citas_recientes": citas_pasadas[:5],
+                    "citas_pendientes": citas_pendientes,
+                    "historiales_recientes": historiales[:5],
+                    "estadisticas_propietario": {
+                        "mascotas": len(mascotas),
+                        "citas_activas": len(citas_proximas)
+                        + len(citas_pendientes),
+                        "informes": len(historiales),
+                        "profesionales": len(
+                            {c.veterinario_id for c in citas if c.veterinario_id}
+                        ),
+                    },
+                }
+            )
+
         context["productos_sugeridos"] = (
             Producto.objects.filter(disponible=True)
             .order_by("-actualizado")[:3]
@@ -641,25 +671,69 @@ def registrar_mascota(request):
 @login_required
 def mis_citas(request):
     user = request.user
+    filtros_estado = request.GET.get("estado", "").strip()
+    filtro_busqueda = request.GET.get("q", "").strip()
+    filtro_desde = request.GET.get("desde", "").strip()
+    filtro_hasta = request.GET.get("hasta", "").strip()
+
     base_queryset = Cita.objects.select_related(
         "paciente",
         "paciente__propietario__user",
         "veterinario",
     )
 
+    queryset = base_queryset
+
+    propietario = None
     if user.rol == "VET":
-        queryset = base_queryset.filter(veterinario=user).order_by(
-            "-fecha_solicitada", "-fecha_hora"
-        )
+        queryset = queryset.filter(veterinario=user)
     elif user.rol == "OWNER":
-        propietario = get_object_or_404(Propietario, user=user)
-        queryset = base_queryset.filter(paciente__propietario=propietario).order_by(
-            "-fecha_solicitada", "-fecha_hora"
+        propietario = (
+            Propietario.objects.select_related("user").filter(user=user).first()
         )
-    elif user.rol in {"ADMIN_OP", "ADMIN"}:
-        queryset = base_queryset.order_by("-fecha_solicitada", "-fecha_hora")
-    else:
-        queryset = base_queryset.none()
+        if propietario:
+            queryset = queryset.filter(paciente__propietario=propietario)
+        else:
+            queryset = queryset.none()
+            messages.warning(
+                request,
+                "Completa tu perfil de propietario para comenzar a registrar y seguir tus citas.",
+            )
+    elif user.rol not in {"ADMIN_OP", "ADMIN"}:
+        queryset = queryset.none()
+
+    if filtros_estado:
+        queryset = queryset.filter(estado=filtros_estado)
+
+    if filtro_busqueda:
+        queryset = queryset.filter(
+            Q(paciente__nombre__icontains=filtro_busqueda)
+            | Q(paciente__propietario__user__first_name__icontains=filtro_busqueda)
+            | Q(paciente__propietario__user__last_name__icontains=filtro_busqueda)
+            | Q(veterinario__first_name__icontains=filtro_busqueda)
+            | Q(veterinario__last_name__icontains=filtro_busqueda)
+            | Q(notas__icontains=filtro_busqueda)
+        )
+
+    fecha_desde = None
+    if filtro_desde:
+        try:
+            fecha_desde = datetime.strptime(filtro_desde, "%Y-%m-%d").date()
+        except ValueError:
+            messages.warning(request, "La fecha desde ingresada no es válida.")
+        else:
+            queryset = queryset.filter(fecha_solicitada__gte=fecha_desde)
+
+    fecha_hasta = None
+    if filtro_hasta:
+        try:
+            fecha_hasta = datetime.strptime(filtro_hasta, "%Y-%m-%d").date()
+        except ValueError:
+            messages.warning(request, "La fecha hasta ingresada no es válida.")
+        else:
+            queryset = queryset.filter(fecha_solicitada__lte=fecha_hasta)
+
+    queryset = queryset.order_by("-fecha_solicitada", "-fecha_hora")
 
     citas = list(queryset)
 
@@ -706,6 +780,14 @@ def mis_citas(request):
             "canceladas": estado_resumen.get("cancelada", 0),
             "sin_veterinario": sin_veterinario,
         },
+        "filtros": {
+            "estado": filtros_estado,
+            "q": filtro_busqueda,
+            "desde": filtro_desde,
+            "hasta": filtro_hasta,
+        },
+        "propietario": propietario,
+        "estados": Cita.ESTADOS,
     }
 
     return render(request, "core/mis_citas.html", context)
@@ -858,43 +940,173 @@ def listar_citas_admin(request):
         messages.error(request, "No tienes permiso para ver esta página.")
         return redirect("dashboard")
 
-    citas_pendientes = (
-        Cita.objects.select_related("paciente", "paciente__propietario__user")
-        .filter(estado="pendiente")
-        .order_by("fecha_solicitada", "fecha_hora")
-    )
-    citas_programadas = (
-        Cita.objects.select_related(
-            "paciente", "paciente__propietario__user", "veterinario"
-        )
-        .filter(estado="programada")
-        .order_by("fecha_hora")
-    )
-    citas_atendidas = (
-        Cita.objects.select_related(
-            "paciente", "paciente__propietario__user", "veterinario"
-        )
-        .filter(estado="atendida")
-        .order_by("-fecha_hora")
+    if request.method == "POST":
+        action = request.POST.get("action", "").strip()
+        cita_id = request.POST.get("cita_id")
+        redirect_url = request.POST.get("redirect") or reverse("listar_citas_admin")
+
+        if not cita_id:
+            messages.error(request, "Selecciona una cita para aplicar la acción.")
+            return redirect(redirect_url)
+
+        cita = get_object_or_404(Cita, id=cita_id)
+
+        if action == "cancelar":
+            if cita.estado == "cancelada":
+                messages.info(request, "La cita ya se encuentra cancelada.")
+            else:
+                cita.estado = "cancelada"
+                cita.save(update_fields=["estado"])
+                messages.success(
+                    request,
+                    f"Cita de {cita.paciente.nombre} cancelada correctamente.",
+                )
+        elif action == "marcar_atendida":
+            if cita.estado == "atendida":
+                messages.info(request, "La cita ya estaba marcada como atendida.")
+            else:
+                cita.estado = "atendida"
+                if not cita.fecha_hora:
+                    cita.fecha_hora = timezone.now()
+                    cita.save(update_fields=["estado", "fecha_hora"])
+                else:
+                    cita.save(update_fields=["estado"])
+                messages.success(
+                    request,
+                    f"Cita de {cita.paciente.nombre} marcada como atendida.",
+                )
+        elif action == "reactivar":
+            cita.estado = "pendiente"
+            cita.fecha_hora = None
+            cita.veterinario = None
+            cita.save(update_fields=["estado", "fecha_hora", "veterinario"])
+            messages.success(
+                request,
+                f"Cita de {cita.paciente.nombre} reabierta para reasignar horario.",
+            )
+        else:
+            messages.error(request, "Acción no reconocida.")
+
+        return redirect(redirect_url)
+
+    filtro_estado = request.GET.get("estado", "").strip()
+    filtro_veterinario = request.GET.get("veterinario", "").strip()
+    filtro_propietario = request.GET.get("propietario", "").strip()
+    filtro_tipo = request.GET.get("tipo", "").strip()
+    filtro_busqueda = request.GET.get("q", "").strip()
+    filtro_desde = request.GET.get("desde", "").strip()
+    filtro_hasta = request.GET.get("hasta", "").strip()
+    filtro_sin_veterinario = request.GET.get("sin_veterinario") == "1"
+
+    queryset = Cita.objects.select_related(
+        "paciente",
+        "paciente__propietario__user",
+        "veterinario",
     )
 
-    conteo_estados = {
-        "pendiente": citas_pendientes.count(),
-        "programada": citas_programadas.count(),
-        "atendida": citas_atendidas.count(),
-        "cancelada": Cita.objects.filter(estado="cancelada").count(),
+    if filtro_estado:
+        queryset = queryset.filter(estado=filtro_estado)
+
+    if filtro_tipo:
+        queryset = queryset.filter(tipo=filtro_tipo)
+
+    if filtro_veterinario == "sin_asignar":
+        queryset = queryset.filter(veterinario__isnull=True)
+    elif filtro_veterinario:
+        queryset = queryset.filter(veterinario_id=filtro_veterinario)
+
+    if filtro_propietario:
+        queryset = queryset.filter(paciente__propietario_id=filtro_propietario)
+
+    if filtro_sin_veterinario:
+        queryset = queryset.filter(veterinario__isnull=True)
+
+    if filtro_busqueda:
+        queryset = queryset.filter(
+            Q(paciente__nombre__icontains=filtro_busqueda)
+            | Q(paciente__propietario__user__first_name__icontains=filtro_busqueda)
+            | Q(paciente__propietario__user__last_name__icontains=filtro_busqueda)
+            | Q(veterinario__first_name__icontains=filtro_busqueda)
+            | Q(veterinario__last_name__icontains=filtro_busqueda)
+            | Q(notas__icontains=filtro_busqueda)
+        )
+
+    if filtro_desde:
+        try:
+            fecha_desde = datetime.strptime(filtro_desde, "%Y-%m-%d").date()
+        except ValueError:
+            messages.warning(request, "La fecha desde ingresada no es válida.")
+        else:
+            queryset = queryset.filter(fecha_solicitada__gte=fecha_desde)
+
+    if filtro_hasta:
+        try:
+            fecha_hasta = datetime.strptime(filtro_hasta, "%Y-%m-%d").date()
+        except ValueError:
+            messages.warning(request, "La fecha hasta ingresada no es válida.")
+        else:
+            queryset = queryset.filter(fecha_solicitada__lte=fecha_hasta)
+
+    queryset = queryset.order_by("-fecha_solicitada", "-fecha_hora")
+
+    citas = list(queryset)
+
+    resumen_filtrado = {estado: 0 for estado, _ in Cita.ESTADOS}
+    for cita in citas:
+        resumen_filtrado[cita.estado] = resumen_filtrado.get(cita.estado, 0) + 1
+
+    resumen_global = {estado: 0 for estado, _ in Cita.ESTADOS}
+    for item in Cita.objects.values("estado").annotate(total=Count("id")):
+        resumen_global[item["estado"]] = item["total"]
+
+    proximas_citas = [
+        cita
+        for cita in citas
+        if cita.fecha_hora and cita.estado in {"programada", "pendiente"}
+    ]
+    proximas_citas.sort(key=lambda c: c.fecha_hora or timezone.now())
+
+    veterinarios = User.objects.filter(rol="VET", activo=True).order_by(
+        "first_name", "last_name"
+    )
+    propietarios = (
+        Propietario.objects.select_related("user")
+        .order_by("user__first_name", "user__last_name")
+    )
+
+    querystring = request.GET.urlencode()
+    redirect_target = reverse("listar_citas_admin")
+    if querystring:
+        redirect_target = f"{redirect_target}?{querystring}"
+
+    total_global = sum(resumen_global.values())
+
+    context = {
+        "citas": citas,
+        "total_citas": len(citas),
+        "resumen_filtrado": resumen_filtrado,
+        "resumen_global": resumen_global,
+        "proximas_citas": proximas_citas[:5],
+        "filtros": {
+            "estado": filtro_estado,
+            "veterinario": filtro_veterinario,
+            "propietario": filtro_propietario,
+            "tipo": filtro_tipo,
+            "q": filtro_busqueda,
+            "desde": filtro_desde,
+            "hasta": filtro_hasta,
+            "sin_veterinario": filtro_sin_veterinario,
+        },
+        "estados": Cita.ESTADOS,
+        "tipos": Cita.TIPOS,
+        "veterinarios": veterinarios,
+        "propietarios": propietarios,
+        "querystring": querystring,
+        "redirect_target": redirect_target,
+        "total_global": total_global,
     }
 
-    return render(
-        request,
-        "core/citas_admin.html",
-        {
-            "citas_pendientes": citas_pendientes,
-            "citas_programadas": citas_programadas,
-            "citas_atendidas": citas_atendidas,
-            "conteo_estados": conteo_estados,
-        },
-    )
+    return render(request, "core/citas_admin.html", context)
 
 
 @login_required
@@ -1224,20 +1436,32 @@ def buscar_propietarios(request):
 
     q = request.GET.get("q", "")
     resultados = []
+    total_encontrados = 0
 
     if q:
-        resultados = Propietario.objects.filter(
-            Q(user__first_name__icontains=q)
-            | Q(user__last_name__icontains=q)
-            | Q(user__username__icontains=q)
-            | Q(telefono__icontains=q)
-            | Q(direccion__icontains=q)
+        resultados = (
+            Propietario.objects.select_related("user")
+            .annotate(total_mascotas=Count("paciente", distinct=True))
+            .filter(
+                Q(user__first_name__icontains=q)
+                | Q(user__last_name__icontains=q)
+                | Q(user__username__icontains=q)
+                | Q(telefono__icontains=q)
+                | Q(direccion__icontains=q)
+                | Q(ciudad__icontains=q)
+            )
+            .order_by("user__first_name", "user__last_name")
         )
+        total_encontrados = resultados.count()
 
     return render(
         request,
         "core/buscar_propietarios.html",
-        {"resultados": resultados, "query": q},
+        {
+            "resultados": resultados,
+            "query": q,
+            "total_encontrados": total_encontrados,
+        },
     )
 
 
