@@ -31,6 +31,14 @@
                 </div>
                 <div class="mt-4 d-flex gap-3">
                     <a href="{% url 'tienda' %}" class="btn btn-outline-primary"><i class="bi bi-arrow-left me-2"></i>Volver a la tienda</a>
+                    {% if producto.telefono_whatsapp %}
+                        <a href="https://wa.me/{{ producto.telefono_whatsapp }}?text={{ producto.mensaje_whatsapp|urlencode }}"
+                           class="btn btn-success"
+                           target="_blank"
+                           rel="noopener">
+                            <i class="bi bi-whatsapp me-2"></i>Comprar por WhatsApp
+                        </a>
+                    {% endif %}
                     {% if request.user.is_authenticated and request.user.rol == 'ADMIN' %}
                         <a href="{% url 'admin_producto_editar' producto.id %}" class="btn btn-primary"><i class="bi bi-pencil-square me-2"></i>Editar</a>
                     {% endif %}

@@ -90,7 +90,14 @@ class HistorialMedicoAdmin(admin.ModelAdmin):
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "categoria", "precio", "disponible", "actualizado")
+    list_display = (
+        "nombre",
+        "categoria",
+        "precio",
+        "telefono_contacto",
+        "disponible",
+        "actualizado",
+    )
     list_filter = ("categoria", "disponible")
     search_fields = ("nombre", "descripcion")
 

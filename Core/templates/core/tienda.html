@@ -46,7 +46,17 @@
                         <p class="card-text text-muted small flex-grow-1">{{ producto.descripcion|truncatewords:25 }}</p>
                         <div class="d-flex justify-content-between align-items-center mt-3">
                             <span class="fw-bold text-primary fs-5">${{ producto.precio }}</span>
-                            <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-outline-primary btn-sm">Detalles</a>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'detalle_producto' producto.id %}" class="btn btn-outline-primary btn-sm">Detalles</a>
+                                {% if producto.telefono_whatsapp %}
+                                    <a href="https://wa.me/{{ producto.telefono_whatsapp }}?text={{ producto.mensaje_whatsapp|urlencode }}"
+                                       class="btn btn-success btn-sm"
+                                       target="_blank"
+                                       rel="noopener">
+                                        <i class="bi bi-whatsapp"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>

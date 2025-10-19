@@ -154,6 +154,7 @@ class Producto(models.Model):
         validators=[MinValueValidator(Decimal("0.01"))],
     )
     imagen = models.ImageField(upload_to="productos/", blank=True, null=True)
+    telefono_contacto = models.CharField(max_length=20, blank=True)
     disponible = models.BooleanField(default=True)
     creado = models.DateTimeField(auto_now_add=True)
     actualizado = models.DateTimeField(auto_now=True)
@@ -163,6 +164,20 @@ class Producto(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def telefono_whatsapp(self) -> str:
+        """Return a digits-only phone number suitable for wa.me links."""
+        telefono = (self.telefono_contacto or "").strip()
+        return "".join(ch for ch in telefono if ch.isdigit())
+
+    @property
+    def mensaje_whatsapp(self) -> str:
+        """Default WhatsApp message referencing the product name."""
+        return (
+            f"Hola! Me interesa el producto '{self.nombre}' de la tienda Sabueso Feliz. "
+            "¿Me ayudas con los detalles para concretar la compra?"
+        )
 
 
 class VacunaRecomendada(models.Model):

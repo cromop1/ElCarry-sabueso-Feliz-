@@ -50,6 +50,15 @@
                     </div>
 
                     <div class="mb-3 mt-3">
+                        <label class="form-label fw-semibold">Teléfono de contacto para ventas</label>
+                        {{ form.telefono_contacto }}
+                        <div class="form-text">Este número se usará para redirigir a WhatsApp cuando un cliente quiera comprar.</div>
+                        {% if form.telefono_contacto.errors %}
+                            <div class="text-danger small">{{ form.telefono_contacto.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3 mt-3">
                         <label class="form-label fw-semibold">Imagen</label>
                         {{ form.imagen }}
                         {% if producto and producto.imagen %}
