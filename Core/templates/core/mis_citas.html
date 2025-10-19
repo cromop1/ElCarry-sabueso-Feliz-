@@ -7,7 +7,11 @@
         <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
             <div>
                 <h5 class="mb-1">{{ cita.paciente.nombre }}</h5>
-                <small class="text-muted">{{ cita.fecha_hora|date:"d/m/Y H:i" }}</small>
+                {% if cita.fecha_hora %}
+                    <small class="text-muted">{{ cita.fecha_hora|date:"d/m/Y H:i" }} hs</small>
+                {% else %}
+                    <small class="text-muted">Solicitud para {{ cita.fecha_solicitada|date:"d/m/Y" }} · Horario a confirmar</small>
+                {% endif %}
                 {% if cita.notas %}
                     <p class="mb-0 text-muted small">{{ cita.notas }}</p>
                 {% endif %}

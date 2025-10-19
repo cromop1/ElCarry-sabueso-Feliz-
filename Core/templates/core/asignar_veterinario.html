@@ -9,7 +9,23 @@
 <body class="bg-light">
 <div class="container mt-4">
     <h2 class="fw-bold">Asignar Veterinario</h2>
-    <p class="text-muted">Cita para <strong>{{ cita.paciente.nombre }}</strong> el {{ cita.fecha_hora|date:"d/m/Y H:i" }} (estado: {{ cita.get_estado_display }})</p>
+    <p class="text-muted mb-3">
+        Cita solicitada para <strong>{{ cita.paciente.nombre }}</strong> el
+        <strong>{{ cita.fecha_solicitada|date:"d/m/Y" }}</strong>
+        {% if cita.fecha_hora %}
+            a las <strong>{{ cita.fecha_hora|date:"H:i" }} hs</strong>
+        {% else %}
+            <span class="badge text-bg-warning">Horario sin confirmar</span>
+        {% endif %}
+        (estado: {{ cita.get_estado_display }})
+    </p>
+    {% with telefono=cita.telefono_contacto %}
+        {% if telefono %}
+            <a href="https://wa.me/{{ telefono }}?text={{ cita.mensaje_whatsapp|urlencode }}" target="_blank" class="btn btn-success btn-sm mb-3">
+                Contactar por WhatsApp
+            </a>
+        {% endif %}
+    {% endwith %}
     {% if messages %}
         {% for message in messages %}
             <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-warning{% endif %} mt-3">{{ message }}</div>
@@ -17,6 +33,16 @@
     {% endif %}
     <form method="POST">
         {% csrf_token %}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="fecha" class="form-label">Fecha confirmada</label>
+                <input type="date" name="fecha" id="fecha" class="form-control" value="{{ cita.fecha_hora|date:'Y-m-d'|default:cita.fecha_solicitada|date:'Y-m-d' }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="hora" class="form-label">Hora confirmada</label>
+                <input type="time" name="hora" id="hora" class="form-control" value="{{ cita.fecha_hora|date:'H:i' }}" required>
+            </div>
+        </div>
         <div class="mb-3">
             <label for="veterinario" class="form-label">Selecciona un veterinario</label>
             <select name="veterinario" id="veterinario" class="form-select" required>

@@ -59,7 +59,7 @@ class PacienteAdmin(admin.ModelAdmin):
 # ----------------------------
 @admin.register(Cita)
 class CitaAdmin(admin.ModelAdmin):
-    list_display = ("paciente", "veterinario", "fecha_hora", "tipo", "estado")
+    list_display = ("paciente", "veterinario", "fecha_solicitada", "fecha_hora", "tipo", "estado")
     list_filter = ("estado", "tipo")
     search_fields = ("paciente__nombre", "veterinario__username")
 

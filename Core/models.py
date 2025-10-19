@@ -71,21 +71,51 @@ class Cita(models.Model):
         ("cirugia", "Cirugía"),
     )
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
-    veterinario = models.ForeignKey(User, limit_choices_to={"rol": "VET"}, on_delete=models.SET_NULL, null=True)
-    fecha_hora = models.DateTimeField()
+    veterinario = models.ForeignKey(
+        User,
+        limit_choices_to={"rol": "VET"},
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    fecha_solicitada = models.DateField(default=timezone.now)
+    fecha_hora = models.DateTimeField(blank=True, null=True)
     duracion = models.IntegerField(default=30)  # duración en minutos
     tipo = models.CharField(max_length=50, choices=TIPOS, default="consulta")
     estado = models.CharField(max_length=20, choices=ESTADOS, default="pendiente")
     notas = models.TextField(blank=True)
 
     def __str__(self):
-        veterinario_nombre = self.veterinario.username if self.veterinario else "Sin asignar"
-        fecha_local = self.fecha_hora
-        if timezone.is_aware(self.fecha_hora):
-            fecha_local = timezone.localtime(self.fecha_hora)
+        veterinario_nombre = (
+            self.veterinario.username if self.veterinario else "Sin asignar"
+        )
+        if self.fecha_hora:
+            fecha_local = self.fecha_hora
+            if timezone.is_aware(self.fecha_hora):
+                fecha_local = timezone.localtime(self.fecha_hora)
+            fecha_texto = fecha_local.strftime("%d/%m/%Y %H:%M")
+        else:
+            fecha_texto = f"{self.fecha_solicitada.strftime('%d/%m/%Y')} (sin horario)"
         return (
             f"Cita: {self.paciente.nombre} ({self.get_estado_display()}) con {veterinario_nombre} - "
-            f"{fecha_local.strftime('%d/%m/%Y %H:%M')}"
+            f"{fecha_texto}"
+        )
+
+    def telefono_contacto(self) -> str:
+        propietario = self.paciente.propietario
+        telefono = propietario.telefono or propietario.user.telefono or ""
+        telefono = telefono.strip()
+        if not telefono:
+            return ""
+        return "".join(ch for ch in telefono if ch.isdigit())
+
+    def mensaje_whatsapp(self) -> str:
+        propietario = self.paciente.propietario.user
+        nombre = propietario.get_full_name() or propietario.username
+        fecha = self.fecha_solicitada.strftime("%d/%m/%Y")
+        return (
+            f"Hola {nombre}, te saludamos de Sabueso Feliz. "
+            f"¿Podemos coordinar el horario para la cita de {self.paciente.nombre} del {fecha}?"
         )
 
 # ----------------------------

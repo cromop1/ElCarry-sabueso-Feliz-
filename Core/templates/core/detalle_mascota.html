@@ -21,7 +21,11 @@
             <div class="card border-success-subtle text-success-emphasis">
                 <div class="card-body py-2 px-3">
                     <small class="d-block text-uppercase fw-semibold">Próxima cita</small>
-                    <span class="fw-semibold">{{ proxima_cita.fecha_hora|date:"d/m/Y H:i" }}</span>
+                    {% if proxima_cita.fecha_hora %}
+                        <span class="fw-semibold">{{ proxima_cita.fecha_hora|date:"d/m/Y H:i" }}</span>
+                    {% else %}
+                        <span class="fw-semibold">{{ proxima_cita.fecha_solicitada|date:"d/m/Y" }} · Horario a confirmar</span>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -90,7 +94,13 @@
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <p class="mb-1 fw-semibold">{{ cita.fecha_hora|date:"d/m/Y H:i" }}</p>
+                                    <p class="mb-1 fw-semibold">
+                                        {% if cita.fecha_hora %}
+                                            {{ cita.fecha_hora|date:"d/m/Y H:i" }}
+                                        {% else %}
+                                            {{ cita.fecha_solicitada|date:"d/m/Y" }} · Horario a confirmar
+                                        {% endif %}
+                                    </p>
                                     <p class="mb-0 text-muted small">Estado: {{ cita.get_estado_display }}</p>
                                 </div>
                                 <div class="text-end">
@@ -163,7 +173,13 @@
                             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-semibold">{{ cita.fecha_hora|date:"d/m/Y H:i" }}</span>
+                                        <span class="fw-semibold">
+                                            {% if cita.fecha_hora %}
+                                                {{ cita.fecha_hora|date:"d/m/Y H:i" }}
+                                            {% else %}
+                                                {{ cita.fecha_solicitada|date:"d/m/Y" }} · Horario no registrado
+                                            {% endif %}
+                                        </span>
                                         <span class="badge {% if cita.estado == 'atendida' %}bg-success-subtle text-success-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}">
                                             {{ cita.get_estado_display }}
                                         </span>

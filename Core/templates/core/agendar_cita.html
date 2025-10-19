@@ -121,12 +121,12 @@
         </div>
 
         <div class="rounded-md bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-700">
-            El equipo administrativo asignará al veterinario disponible una vez que registres la cita.
+            Elige el día que prefieras y nuestro equipo administrativo se comunicará contigo por WhatsApp para definir el horario.
         </div>
 
         <div>
-            <label for="fecha_hora">Fecha y hora</label>
-            <input type="datetime-local" name="fecha_hora" id="fecha_hora" value="{{ request.POST.fecha_hora }}" required>
+            <label for="fecha_solicitada">Día preferido</label>
+            <input type="date" name="fecha_solicitada" id="fecha_solicitada" value="{{ request.POST.fecha_solicitada }}" required>
         </div>
 
         <div>
