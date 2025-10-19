@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from itertools import chain
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -1214,7 +1215,29 @@ def dashboard_veterinarios(request):
     if request.user.rol != "ADMIN":
         return redirect("dashboard")
 
-    veterinarios = User.objects.filter(rol="VET")
+    veterinarios = User.objects.filter(rol="VET").order_by("first_name", "last_name")
+
+    total_pendientes = Cita.objects.filter(estado="pendiente").count()
+    total_programadas = Cita.objects.filter(estado="programada").count()
+    total_atendidas = Cita.objects.filter(estado="atendida").count()
+    total_canceladas = Cita.objects.filter(estado="cancelada").count()
+
+    citas_en_proceso = total_pendientes + total_programadas
+    tasa_cumplimiento = 0
+    if total_programadas + total_atendidas:
+        tasa_cumplimiento = round(
+            (total_atendidas / (total_programadas + total_atendidas)) * 100
+        )
+
+    resumen_global = {
+        "total_veterinarios": veterinarios.count(),
+        "citas_pendientes": total_pendientes,
+        "citas_programadas": total_programadas,
+        "citas_atendidas": total_atendidas,
+        "citas_canceladas": total_canceladas,
+        "citas_en_proceso": citas_en_proceso,
+        "tasa_cumplimiento": tasa_cumplimiento,
+    }
 
     vet_stats = []
     for vet in veterinarios:
@@ -1222,26 +1245,65 @@ def dashboard_veterinarios(request):
         citas_programadas = Cita.objects.filter(
             veterinario=vet, estado="programada"
         ).count()
+        citas_pendientes = Cita.objects.filter(
+            veterinario=vet, estado="pendiente"
+        ).count()
         citas_atendidas = Cita.objects.filter(
             veterinario=vet, estado="atendida"
         ).count()
-        proximas_citas = (
-            Cita.objects.filter(veterinario=vet, estado="programada")
-            .exclude(fecha_hora__isnull=True)
+        citas_canceladas = Cita.objects.filter(
+            veterinario=vet, estado="cancelada"
+        ).count()
+
+        proximas_confirmadas = (
+            Cita.objects.filter(
+                veterinario=vet, estado="programada", fecha_hora__isnull=False
+            )
             .order_by("fecha_hora")[:5]
         )
+        proximas_sin_horario = (
+            Cita.objects.filter(
+                veterinario=vet, estado="programada", fecha_hora__isnull=True
+            )
+            .order_by("fecha_solicitada")[:5]
+        )
+        proximas_citas = list(chain(proximas_confirmadas, proximas_sin_horario))[:5]
+
+        nombre_completo = vet.get_full_name() or vet.username
+        iniciales = "".join(parte[0] for parte in nombre_completo.split() if parte)[:2]
+        if not iniciales:
+            iniciales = (vet.username[:2] or "VF").upper()
+        else:
+            iniciales = iniciales.upper()
+
+        citas_en_proceso = citas_programadas + citas_pendientes
+        tasa_atencion = 0
+        if citas_programadas + citas_atendidas:
+            tasa_atencion = round(
+                (citas_atendidas / (citas_programadas + citas_atendidas)) * 100
+            )
 
         vet_stats.append(
             {
                 "veterinario": vet,
                 "citas_totales": citas_totales,
-                "citas_pendientes": citas_programadas,
+                "citas_programadas": citas_programadas,
+                "citas_pendientes": citas_pendientes,
                 "citas_atendidas": citas_atendidas,
+                "citas_canceladas": citas_canceladas,
+                "citas_en_proceso": citas_en_proceso,
                 "proximas_citas": proximas_citas,
+                "tasa_atencion": tasa_atencion,
+                "iniciales": iniciales,
+                "nombre_completo": nombre_completo,
             }
         )
 
-    return render(request, "core/dashboard_veterinarios.html", {"vet_stats": vet_stats})
+    return render(
+        request,
+        "core/dashboard_veterinarios.html",
+        {"vet_stats": vet_stats, "resumen": resumen_global},
+    )
 
 
 @login_required
