@@ -1,37 +1,71 @@
-<!-- core/registrar_historial.html -->
 {% extends "core/dashboard.html" %}
+
+{% block title %}Registrar historial - Sabueso Feliz{% endblock %}
+
 {% block content %}
-<h3>Registrar Historial Médico - {{ paciente.nombre }}</h3>
-<form method="post">
-    {% csrf_token %}
-    <div class="mb-2">
-        <label>Diagnóstico</label>
-        <textarea name="diagnostico" class="form-control" required></textarea>
+<div class="space-y-8">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Historial médico</p>
+            <h2 class="text-2xl font-bold text-gray-900">Nuevo registro para {{ paciente.nombre }}</h2>
+            <p class="mt-2 max-w-2xl text-sm text-gray-600">
+                Documentá diagnósticos, tratamientos y observaciones clave para mantener una trazabilidad clínica impecable.
+            </p>
+        </div>
+        <a href="{% url 'detalle_mascota' paciente.id %}" class="inline-flex items-center gap-2 rounded-lg border border-cyan-200 px-4 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50">
+            <i class="fas fa-arrow-left"></i>
+            Volver al perfil de {{ paciente.nombre }}
+        </a>
     </div>
-    <div class="mb-2">
-        <label>Tratamiento</label>
-        <textarea name="tratamiento" class="form-control" required></textarea>
-    </div>
-    <div class="mb-2">
-        <label>Notas</label>
-        <textarea name="notas" class="form-control"></textarea>
-    </div>
-    <div class="mb-2">
-        <label>Peso (kg)</label>
-        <input type="number" step="0.01" name="peso" class="form-control">
-    </div>
-    <div class="mb-2">
-        <label>Temperatura (°C)</label>
-        <input type="number" step="0.1" name="temperatura" class="form-control">
-    </div>
-    <div class="mb-2">
-        <label>Exámenes</label>
-        <textarea name="examenes" class="form-control"></textarea>
-    </div>
-    <div class="mb-2">
-        <label>Próximo Control</label>
-        <input type="date" name="proximo_control" class="form-control">
-    </div>
-    <button type="submit" class="btn btn-success">Registrar</button>
-</form>
+
+    <form method="post" class="space-y-6 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div class="space-y-2">
+                <label class="text-sm font-semibold text-gray-700" for="diagnostico">Diagnóstico</label>
+                <textarea id="diagnostico" name="diagnostico" rows="4" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200" required></textarea>
+            </div>
+            <div class="space-y-2">
+                <label class="text-sm font-semibold text-gray-700" for="tratamiento">Tratamiento</label>
+                <textarea id="tratamiento" name="tratamiento" rows="4" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200" required></textarea>
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-sm font-semibold text-gray-700" for="notas">Notas adicionales</label>
+            <textarea id="notas" name="notas" rows="3" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div class="space-y-2">
+                <label class="text-sm font-semibold text-gray-700" for="peso">Peso (kg)</label>
+                <input id="peso" type="number" step="0.01" name="peso" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200">
+            </div>
+            <div class="space-y-2">
+                <label class="text-sm font-semibold text-gray-700" for="temperatura">Temperatura (°C)</label>
+                <input id="temperatura" type="number" step="0.1" name="temperatura" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200">
+            </div>
+            <div class="space-y-2">
+                <label class="text-sm font-semibold text-gray-700" for="proximo_control">Próximo control</label>
+                <input id="proximo_control" type="date" name="proximo_control" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200">
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-sm font-semibold text-gray-700" for="examenes">Exámenes solicitados</label>
+            <textarea id="examenes" name="examenes" rows="3" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200"></textarea>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <a href="{% url 'detalle_mascota' paciente.id %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100">
+                <i class="fas fa-times"></i>
+                Cancelar
+            </a>
+            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-emerald-700">
+                <i class="fas fa-save"></i>
+                Guardar historial
+            </button>
+        </div>
+    </form>
+</div>
 {% endblock %}

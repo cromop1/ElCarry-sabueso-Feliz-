@@ -641,21 +641,74 @@ def registrar_mascota(request):
 @login_required
 def mis_citas(request):
     user = request.user
+    base_queryset = Cita.objects.select_related(
+        "paciente",
+        "paciente__propietario__user",
+        "veterinario",
+    )
+
     if user.rol == "VET":
-        citas = Cita.objects.filter(veterinario=user).order_by(
+        queryset = base_queryset.filter(veterinario=user).order_by(
             "-fecha_solicitada", "-fecha_hora"
         )
     elif user.rol == "OWNER":
         propietario = get_object_or_404(Propietario, user=user)
-        citas = Cita.objects.filter(paciente__propietario=propietario).order_by(
+        queryset = base_queryset.filter(paciente__propietario=propietario).order_by(
             "-fecha_solicitada", "-fecha_hora"
         )
     elif user.rol in {"ADMIN_OP", "ADMIN"}:
-        citas = Cita.objects.all().order_by("-fecha_solicitada", "-fecha_hora")
+        queryset = base_queryset.order_by("-fecha_solicitada", "-fecha_hora")
     else:
-        citas = Cita.objects.none()
+        queryset = base_queryset.none()
 
-    return render(request, "core/mis_citas.html", {"citas": citas})
+    citas = list(queryset)
+
+    ahora = timezone.now()
+    citas_proximas = []
+    citas_pasadas = []
+    citas_pendientes = []
+    estado_resumen = {estado: 0 for estado, _ in Cita.ESTADOS}
+    sin_veterinario = 0
+
+    for cita in citas:
+        estado_resumen[cita.estado] = estado_resumen.get(cita.estado, 0) + 1
+        if not cita.veterinario_id:
+            sin_veterinario += 1
+
+        if cita.fecha_hora:
+            if cita.fecha_hora >= ahora:
+                citas_proximas.append(cita)
+            else:
+                citas_pasadas.append(cita)
+        else:
+            citas_pendientes.append(cita)
+
+    context = {
+        "citas": citas,
+        "citas_proximas": sorted(citas_proximas, key=lambda c: c.fecha_hora),
+        "citas_pendientes": sorted(
+            citas_pendientes,
+            key=lambda c: (
+                c.fecha_solicitada or timezone.localdate(),
+                c.paciente.nombre,
+            ),
+        ),
+        "citas_pasadas": sorted(
+            citas_pasadas,
+            key=lambda c: c.fecha_hora,
+            reverse=True,
+        ),
+        "estadisticas_citas": {
+            "total": len(citas),
+            "programadas": estado_resumen.get("programada", 0),
+            "pendientes": estado_resumen.get("pendiente", 0),
+            "atendidas": estado_resumen.get("atendida", 0),
+            "canceladas": estado_resumen.get("cancelada", 0),
+            "sin_veterinario": sin_veterinario,
+        },
+    }
+
+    return render(request, "core/mis_citas.html", context)
 
 
 @login_required
