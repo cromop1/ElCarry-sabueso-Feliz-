@@ -12,6 +12,7 @@
                 <a href="{% url 'registro_propietario' %}" class="btn btn-light btn-lg px-4 text-primary fw-bold"><i class="bi bi-heart-fill me-2"></i>Comenzar ahora</a>
                 <a href="{% url 'tienda' %}" class="btn btn-outline-light btn-lg px-4"><i class="bi bi-bag-heart me-2"></i>Explorar tienda</a>
                 <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4"><i class="bi bi-speedometer me-2"></i>Ingresar al panel</a>
+                <a href="{% url 'contacto' %}" class="btn btn-outline-light btn-lg px-4"><i class="bi bi-telephone-outbound me-2"></i>Contactar</a>
             </div>
         </div>
         <div class="col-lg-6 text-center mt-4 mt-lg-0">
@@ -241,6 +242,29 @@
                     <p class="fw-semibold mb-0">Lucía Fernández</p>
                     <span class="text-muted small">Propietaria de mascotas</span>
                 </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="row g-4 align-items-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 p-lg-5">
+                    <span class="badge bg-primary-subtle text-primary fw-semibold text-uppercase mb-3">Visítanos</span>
+                    <h3 class="fw-bold mb-3">Juan Perrin 6089 · Córdoba, Argentina</h3>
+                    <p class="text-muted mb-4">Atendemos de lunes a viernes de 08:00 a 20:00 y los sábados de 09:00 a 14:00. Coordinamos turnos por WhatsApp y te esperamos con nuestro equipo listo para tu mascota.</p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="https://wa.me/543515301903" class="btn btn-primary px-4" target="_blank" rel="noopener"><i class="bi bi-whatsapp me-2"></i>Escribir ahora</a>
+                        <a href="{% url 'contacto' %}" class="btn btn-outline-primary px-4"><i class="bi bi-geo-alt me-2"></i>Ver información completa</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm">
+                <iframe src="https://www.google.com/maps?q=Juan+Perrin+6089,+C%C3%B3rdoba,+Argentina&output=embed" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
             </div>
         </div>
     </div>

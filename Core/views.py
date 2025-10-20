@@ -115,6 +115,25 @@ def landing(request):
     )
 
 
+def contacto(request):
+    """Página de contacto institucional de la veterinaria."""
+
+    context = {
+        "titulo_pagina": "Contacto",
+        "direccion": "Juan Perrin 6089, Córdoba, Argentina",
+        "telefono": "+54 351 530-1903",
+        "telefono_link": "tel:+543515301903",
+        "email": "contacto@sabuesofeliz.com",
+        "horarios": {
+            "Lunes a Viernes": "08:00 a 20:00",
+            "Sábados": "09:00 a 14:00",
+        },
+        "whatsapp_url": "https://wa.me/543515301903",
+    }
+
+    return render(request, "core/contacto.html", context)
+
+
 def tienda(request):
     categoria = request.GET.get("categoria")
     busqueda = request.GET.get("q", "").strip()
