@@ -65,6 +65,11 @@ urlpatterns = [
     path('propietario/<int:propietario_id>/', views.detalle_propietario, name='detalle_propietario'),
     path('asignar_veterinario/', views.gestionar_veterinarios, name="gestionar_veterinarios"),
     path("dashboard/veterinarios/", views.dashboard_veterinarios, name="dashboard_veterinarios"),
+    path(
+        "dashboard/veterinarios/indicadores/",
+        views.dashboard_veterinarios_indicadores,
+        name="dashboard_veterinarios_indicadores",
+    ),
     path('vet/historial-medico/', views.historial_medico_vet, name='historial_medico_vet'),
     path('vet/historial-medico/<int:historial_id>/', views.detalle_historial, name='detalle_historial'),
     

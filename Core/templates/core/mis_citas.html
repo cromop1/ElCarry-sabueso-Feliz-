@@ -19,7 +19,7 @@
                     Solicitar nueva cita
                 </a>
             {% elif request.user.rol == "VET" %}
-                <a href="{% url 'dashboard_veterinarios' %}" class="inline-flex items-center gap-2 rounded-lg border border-cyan-200 px-4 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50">
+                <a href="{% url 'dashboard_veterinarios_indicadores' %}" class="inline-flex items-center gap-2 rounded-lg border border-cyan-200 px-4 py-2 text-sm font-semibold text-cyan-700 hover:bg-cyan-50">
                     <i class="fas fa-chart-pie"></i>
                     Indicadores del equipo
                 </a>

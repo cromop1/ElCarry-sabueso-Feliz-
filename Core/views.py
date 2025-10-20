@@ -680,6 +680,7 @@ def registrar_mascota(request):
         return redirect("dashboard")
 
     propietario = get_object_or_404(Propietario, user=request.user)
+    form_data = request.POST if request.method == "POST" else {}
 
     if request.method == "POST":
         has_error = False
@@ -714,7 +715,11 @@ def registrar_mascota(request):
             )
             return redirect("mis_mascotas")
 
-    return render(request, "core/registrar_mascota.html")
+    return render(
+        request,
+        "core/registrar_mascota.html",
+        {"form_data": form_data},
+    )
 
 
 # ----------------------------
@@ -1409,6 +1414,8 @@ def crear_propietario_admin(request):
         messages.error(request, "No tienes permiso para esta acción.")
         return redirect("dashboard")
 
+    form_data = request.POST if request.method == "POST" else {}
+
     if request.method == "POST":
         username = request.POST.get("username")
         email = request.POST.get("email")
@@ -1435,7 +1442,11 @@ def crear_propietario_admin(request):
             messages.success(request, "Propietario creado correctamente ✅")
             return redirect("dashboard")
 
-    return render(request, "core/crear_propietario_admin.html")
+    return render(
+        request,
+        "core/crear_propietario_admin.html",
+        {"form_data": form_data},
+    )
 
 
 @login_required
@@ -1445,6 +1456,7 @@ def crear_mascota_admin(request):
         return redirect("dashboard")
 
     propietarios = Propietario.objects.all()
+    form_data = request.POST if request.method == "POST" else {}
 
     if request.method == "POST":
         has_error = False
@@ -1489,7 +1501,7 @@ def crear_mascota_admin(request):
     return render(
         request,
         "core/crear_mascota_admin.html",
-        {"propietarios": propietarios},
+        {"propietarios": propietarios, "form_data": form_data},
     )
 
 
@@ -1742,6 +1754,152 @@ def dashboard_veterinarios(request):
 
 
 @login_required
+def dashboard_veterinarios_indicadores(request):
+    if request.user.rol not in {"ADMIN", "ADMIN_OP", "VET"}:
+        messages.error(request, "No tienes permiso para acceder a los indicadores estratégicos.")
+        return redirect("dashboard")
+
+    ahora = timezone.now()
+    inicio_periodo = (ahora - timedelta(days=29)).date()
+    fin_periodo = ahora.date()
+
+    citas_periodo = (
+        Cita.objects.filter(fecha_solicitada__gte=inicio_periodo)
+        .select_related("paciente", "paciente__propietario__user", "veterinario")
+        .order_by("-fecha_solicitada")
+    )
+
+    total_periodo = citas_periodo.count()
+    total_pendientes = citas_periodo.filter(estado="pendiente").count()
+    total_programadas = citas_periodo.filter(estado="programada").count()
+    total_atendidas = citas_periodo.filter(estado="atendida").count()
+    total_canceladas = citas_periodo.filter(estado="cancelada").count()
+
+    tasa_resolucion = 0
+    if total_periodo:
+        tasa_resolucion = round((total_atendidas / total_periodo) * 100, 1)
+
+    tasa_confirmacion = 0
+    if total_programadas + total_atendidas:
+        tasa_confirmacion = round(
+            (total_atendidas / (total_programadas + total_atendidas)) * 100, 1
+        )
+
+    tasa_cancelacion = 0
+    if total_periodo:
+        tasa_cancelacion = round((total_canceladas / total_periodo) * 100, 1)
+
+    tiempos_confirmacion = []
+    for cita in citas_periodo.filter(fecha_hora__isnull=False):
+        fecha_confirmada = timezone.localtime(cita.fecha_hora).date()
+        delta = (fecha_confirmada - cita.fecha_solicitada).days
+        if delta >= 0:
+            tiempos_confirmacion.append(delta)
+
+    promedio_confirmacion = 0
+    if tiempos_confirmacion:
+        promedio_confirmacion = round(sum(tiempos_confirmacion) / len(tiempos_confirmacion), 1)
+
+    serie_diaria = []
+    for offset in range(6, -1, -1):
+        dia = ahora.date() - timedelta(days=offset)
+        serie_diaria.append(
+            {
+                "fecha": dia,
+                "label": dia.strftime("%d/%m"),
+                "solicitadas": Cita.objects.filter(fecha_solicitada=dia).count(),
+                "programadas": Cita.objects.filter(
+                    estado="programada", fecha_hora__date=dia
+                ).count(),
+                "atendidas": Cita.objects.filter(
+                    estado="atendida", fecha_hora__date=dia
+                ).count(),
+                "canceladas": Cita.objects.filter(
+                    estado="cancelada", fecha_hora__date=dia
+                ).count(),
+            }
+        )
+
+    tipos_mas_demandados_qs = (
+        citas_periodo.values("tipo")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
+    )
+
+    tipo_labels = dict(Cita.TIPOS)
+    tipos_mas_demandados = [
+        {"tipo": tipo_labels.get(item["tipo"], item["tipo"]), "total": item["total"]}
+        for item in tipos_mas_demandados_qs
+    ]
+
+    veterinarios_performance = (
+        citas_periodo.exclude(veterinario__isnull=True)
+        .values(
+            "veterinario__id",
+            "veterinario__first_name",
+            "veterinario__last_name",
+        )
+        .annotate(
+            total=Count("id"),
+            atendidas=Count("id", filter=Q(estado="atendida")),
+            programadas=Count("id", filter=Q(estado="programada")),
+            pendientes=Count("id", filter=Q(estado="pendiente")),
+        )
+        .order_by("-atendidas", "-total")[:6]
+    )
+
+    propietarios_top = (
+        citas_periodo.values(
+            "paciente__propietario__user__first_name",
+            "paciente__propietario__user__last_name",
+        )
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
+    )
+
+    agenda_semana = (
+        Cita.objects.filter(
+            estado="programada",
+            fecha_hora__isnull=False,
+            fecha_hora__date__gte=fin_periodo,
+            fecha_hora__date__lte=(fin_periodo + timedelta(days=6)),
+        )
+        .select_related("paciente", "paciente__propietario__user", "veterinario")
+        .order_by("fecha_hora")[:6]
+    )
+
+    citas_sin_veterinario = citas_periodo.filter(veterinario__isnull=True).count()
+
+    contexto = {
+        "resumen": {
+            "total": total_periodo,
+            "pendientes": total_pendientes,
+            "programadas": total_programadas,
+            "atendidas": total_atendidas,
+            "canceladas": total_canceladas,
+            "tasa_resolucion": tasa_resolucion,
+            "tasa_confirmacion": tasa_confirmacion,
+            "tasa_cancelacion": tasa_cancelacion,
+            "promedio_confirmacion": promedio_confirmacion,
+            "sin_veterinario": citas_sin_veterinario,
+            "inicio_periodo": inicio_periodo,
+            "fin_periodo": fin_periodo,
+        },
+        "serie_diaria": serie_diaria,
+        "tipos_mas_demandados": tipos_mas_demandados,
+        "veterinarios_performance": veterinarios_performance,
+        "propietarios_top": propietarios_top,
+        "agenda_semana": agenda_semana,
+    }
+
+    return render(
+        request,
+        "core/dashboard_veterinarios_indicadores.html",
+        contexto,
+    )
+
+
+@login_required
 def historial_medico_vet(request):
     if request.user.rol not in {"ADMIN", "VET"}:
         messages.error(request, "No tienes permiso para acceder a esta sección.")
@@ -1751,7 +1909,12 @@ def historial_medico_vet(request):
     fecha_desde = request.GET.get("desde", "")
     fecha_hasta = request.GET.get("hasta", "")
 
-    historiales = HistorialMedico.objects.all()
+    historiales = HistorialMedico.objects.select_related(
+        "paciente",
+        "paciente__propietario__user",
+        "veterinario",
+        "cita",
+    )
 
     if query:
         historiales = historiales.filter(
@@ -1762,20 +1925,71 @@ def historial_medico_vet(request):
         )
 
     if fecha_desde:
-        historiales = historiales.filter(fecha__gte=fecha_desde)
+        historiales = historiales.filter(fecha__date__gte=fecha_desde)
     if fecha_hasta:
-        historiales = historiales.filter(fecha__lte=fecha_hasta)
+        historiales = historiales.filter(fecha__date__lte=fecha_hasta)
 
-    return render(
-        request,
-        "core/historial_medico_vet.html",
-        {
-            "historiales": historiales,
-            "query": query,
-            "fecha_desde": fecha_desde,
-            "fecha_hasta": fecha_hasta,
-        },
+    historiales = historiales.order_by("-fecha")
+
+    total_historiales = historiales.count()
+    ahora = timezone.now()
+    hace_7_dias = ahora - timedelta(days=7)
+    hace_30_dias = ahora - timedelta(days=30)
+
+    historiales_semana = historiales.filter(fecha__gte=hace_7_dias).count()
+    historiales_mes = historiales.filter(fecha__gte=hace_30_dias).count()
+    historiales_sin_cita = historiales.filter(cita__isnull=True).count()
+    pacientes_activos = (
+        historiales.values("paciente_id").distinct().count()
     )
+    veterinarios_activos = (
+        historiales.exclude(veterinario__isnull=True)
+        .values("veterinario_id")
+        .distinct()
+        .count()
+    )
+
+    ultima_actualizacion = historiales.first().fecha if total_historiales else None
+
+    especies_destacadas = (
+        historiales.values("paciente__especie")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:4]
+    )
+
+    profesionales_destacados = (
+        historiales.exclude(veterinario__isnull=True)
+        .values(
+            "veterinario__id",
+            "veterinario__first_name",
+            "veterinario__last_name",
+        )
+        .annotate(total=Count("id"))
+        .order_by("-total")[:6]
+    )
+
+    ultimos_historiales = historiales[:5]
+
+    contexto = {
+        "historiales": historiales,
+        "query": query,
+        "fecha_desde": fecha_desde,
+        "fecha_hasta": fecha_hasta,
+        "resumen": {
+            "total": total_historiales,
+            "semana": historiales_semana,
+            "mes": historiales_mes,
+            "sin_cita": historiales_sin_cita,
+            "pacientes": pacientes_activos,
+            "veterinarios": veterinarios_activos,
+            "ultima_actualizacion": ultima_actualizacion,
+        },
+        "especies_destacadas": especies_destacadas,
+        "profesionales_destacados": profesionales_destacados,
+        "ultimos_historiales": ultimos_historiales,
+    }
+
+    return render(request, "core/historial_medico_vet.html", contexto)
 
 
 @login_required

@@ -14,7 +14,7 @@
                     Visualiza el pulso del equipo, anticipa la demanda de la semana y equilibra cargas para ofrecer
                     un servicio impecable a cada familia.
                 </p>
-                <div class="d-flex flex-wrap gap-3">
+                <div class="d-flex flex-wrap gap-3 mb-4">
                     <div class="bg-white bg-opacity-10 rounded-3 px-4 py-3">
                         <p class="text-uppercase small text-white-50 mb-1">Citas activas</p>
                         <p class="h3 fw-semibold mb-0">{{ resumen.citas_en_proceso }}</p>
@@ -27,6 +27,14 @@
                         <p class="text-uppercase small text-white-50 mb-1">Equipo</p>
                         <p class="h3 fw-semibold mb-0">{{ resumen.total_veterinarios }}</p>
                     </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'dashboard_veterinarios_indicadores' %}" class="btn btn-light text-primary fw-semibold rounded-pill">
+                        <i class="bi bi-graph-up-arrow me-2"></i>Ver indicadores estratégicos
+                    </a>
+                    <a href="{% url 'historial_medico_vet' %}" class="btn btn-outline-light fw-semibold rounded-pill">
+                        <i class="bi bi-journal-medical me-2"></i>Historial clínico
+                    </a>
                 </div>
             </div>
             <div class="col-xl-5">
