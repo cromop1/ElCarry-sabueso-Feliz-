@@ -1,4 +1,6 @@
 from django.contrib import admin
+
+from .forms import UserAdminForm
 from .models import (
     Cita,
     HistorialMedico,
@@ -15,8 +17,10 @@ from .models import (
 # ----------------------------
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+    form = UserAdminForm
+    add_form = UserAdminForm
     list_display = ("username", "rol", "email", "is_active", "especialidad")
-    list_filter = ("rol", "is_active")
+    list_filter = ("rol", "is_active", "activo")
     search_fields = ("username", "email", "rol")
     readonly_fields = ("last_login", "date_joined")
     fieldsets = (

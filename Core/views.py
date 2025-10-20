@@ -55,6 +55,13 @@ def _normalizar_especie_mascota(especie: str) -> str:
     return ""
 
 
+def _veterinarios_activos():
+    return (
+        User.objects.filter(rol="VET", activo=True, is_active=True)
+        .order_by("first_name", "last_name", "username")
+    )
+
+
 # ----------------------------
 # Sitio público
 # ----------------------------
@@ -914,9 +921,7 @@ def asignar_veterinario_cita(request, cita_id):
         return redirect("dashboard")
 
     cita = get_object_or_404(Cita, id=cita_id)
-    veterinarios = User.objects.filter(rol="VET", activo=True).order_by(
-        "first_name", "last_name"
-    )
+    veterinarios = _veterinarios_activos()
 
     if request.method == "POST":
         vet_id = request.POST.get("veterinario")
@@ -1115,9 +1120,7 @@ def listar_citas_admin(request):
     ]
     proximas_citas.sort(key=lambda c: c.fecha_hora or timezone.now())
 
-    veterinarios = User.objects.filter(rol="VET", activo=True).order_by(
-        "first_name", "last_name"
-    )
+    veterinarios = _veterinarios_activos()
     propietarios = (
         Propietario.objects.select_related("user")
         .order_by("user__first_name", "user__last_name")
@@ -1164,9 +1167,7 @@ def asignar_veterinario_citas(request):
         messages.error(request, "No tienes permiso para gestionar estas citas.")
         return redirect("dashboard")
 
-    veterinarios = User.objects.filter(rol="VET", activo=True).order_by(
-        "first_name", "last_name"
-    )
+    veterinarios = _veterinarios_activos()
     citas_pendientes = (
         Cita.objects.select_related("paciente", "paciente__propietario__user")
         .filter(estado="pendiente")
