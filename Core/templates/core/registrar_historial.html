@@ -18,7 +18,7 @@
         </a>
     </div>
 
-    <form method="post" class="space-y-6 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+    <form method="post" enctype="multipart/form-data" class="space-y-6 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         {% csrf_token %}
         {% if cita_asociada %}
         <input type="hidden" name="cita_id" value="{{ cita_asociada.id }}">
@@ -74,12 +74,33 @@
             <div class="space-y-2">
                 <label class="text-sm font-semibold text-gray-700" for="proximo_control">Próximo control</label>
                 <input id="proximo_control" type="date" name="proximo_control" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200">
+                <label class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                    <input type="checkbox" id="sin_proximo_control" name="sin_proximo_control" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                    Este caso no requiere control posterior
+                </label>
             </div>
         </div>
 
         <div class="space-y-2">
             <label class="text-sm font-semibold text-gray-700" for="examenes">Exámenes solicitados</label>
             <textarea id="examenes" name="examenes" rows="3" class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-200"></textarea>
+        </div>
+
+        <div class="rounded-2xl border border-dashed border-cyan-300 bg-cyan-50/70 p-5">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-cyan-800">Adjuntar estudios o imágenes de la atención</p>
+                    <p class="text-xs text-cyan-700">Activá la opción para subir ecografías, radiografías u otros registros visuales.</p>
+                </div>
+                <label class="inline-flex items-center gap-2 text-sm font-semibold text-cyan-800">
+                    <input type="checkbox" id="adjuntar_estudios" name="adjuntar_estudios" class="h-4 w-4 rounded border-cyan-400 text-cyan-600 focus:ring-cyan-500">
+                    Adjuntar archivo
+                </label>
+            </div>
+            <div id="wrapper-estudio" class="mt-4 hidden">
+                <label for="estudio_imagen" class="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-500">Archivo clínico (PNG o JPG)</label>
+                <input id="estudio_imagen" type="file" name="estudio_imagen" accept="image/png,image/jpeg" class="mt-2 w-full cursor-pointer rounded-xl border border-cyan-200 bg-white px-4 py-3 text-sm text-cyan-900 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-300">
+            </div>
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-3">
@@ -94,4 +115,40 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sinControl = document.getElementById('sin_proximo_control');
+    const proximo = document.getElementById('proximo_control');
+    const toggleEstudios = document.getElementById('adjuntar_estudios');
+    const wrapperEstudio = document.getElementById('wrapper-estudio');
+    const inputEstudio = document.getElementById('estudio_imagen');
+
+    function actualizarControl() {
+        if (!sinControl || !proximo) return;
+        const sinSeguimiento = sinControl.checked;
+        proximo.disabled = sinSeguimiento;
+        if (sinSeguimiento) {
+            proximo.value = '';
+        }
+    }
+
+    function actualizarAdjunto() {
+        if (!wrapperEstudio) return;
+        const mostrar = toggleEstudios && toggleEstudios.checked;
+        wrapperEstudio.classList.toggle('hidden', !mostrar);
+        if (!mostrar && inputEstudio) {
+            inputEstudio.value = '';
+        }
+    }
+
+    sinControl && sinControl.addEventListener('change', actualizarControl);
+    toggleEstudios && toggleEstudios.addEventListener('change', actualizarAdjunto);
+
+    actualizarControl();
+    actualizarAdjunto();
+});
+</script>
 {% endblock %}

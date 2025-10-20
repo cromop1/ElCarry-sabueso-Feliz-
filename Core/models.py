@@ -133,6 +133,7 @@ class HistorialMedico(models.Model):
     examenes = models.TextField(blank=True)
     imagenes = models.ImageField(upload_to="historial_medico/", blank=True, null=True)
     proximo_control = models.DateField(blank=True, null=True)
+    sin_proximo_control = models.BooleanField(default=False)
     cita = models.OneToOneField(
         "Cita",
         on_delete=models.SET_NULL,

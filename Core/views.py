@@ -620,6 +620,11 @@ def registrar_historial(request, paciente_id):
         temperatura = request.POST.get("temperatura") or None
         examenes = request.POST.get("examenes")
         proximo_control = request.POST.get("proximo_control") or None
+        sin_proximo_control = bool(request.POST.get("sin_proximo_control"))
+        adjuntar_estudios = bool(request.POST.get("adjuntar_estudios"))
+
+        if sin_proximo_control:
+            proximo_control = None
 
         historial_defaults = {
             "paciente": paciente,
@@ -631,7 +636,11 @@ def registrar_historial(request, paciente_id):
             "temperatura": temperatura,
             "examenes": examenes,
             "proximo_control": proximo_control,
+            "sin_proximo_control": sin_proximo_control,
         }
+
+        if adjuntar_estudios and "estudio_imagen" in request.FILES:
+            historial_defaults["imagenes"] = request.FILES["estudio_imagen"]
 
         if cita_asociada:
             HistorialMedico.objects.update_or_create(
@@ -1252,6 +1261,8 @@ def atender_cita(request, cita_id):
         messages.error(request, "No tienes permiso para atender esta cita.")
         return redirect("dashboard")
 
+    historial_existente = getattr(cita, "historial_medico", None)
+
     if request.method == "POST":
         diagnostico = request.POST.get("diagnostico")
         tratamiento = request.POST.get("tratamiento")
@@ -1260,20 +1271,31 @@ def atender_cita(request, cita_id):
         temperatura = request.POST.get("temperatura") or None
         examenes = request.POST.get("examenes")
         proximo_control = request.POST.get("proximo_control") or None
+        sin_proximo_control = bool(request.POST.get("sin_proximo_control"))
+        adjuntar_estudios = bool(request.POST.get("adjuntar_estudios"))
+
+        if sin_proximo_control:
+            proximo_control = None
+
+        historial_defaults = {
+            "paciente": cita.paciente,
+            "veterinario": request.user,
+            "diagnostico": diagnostico,
+            "tratamiento": tratamiento,
+            "notas": notas,
+            "peso": peso,
+            "temperatura": temperatura,
+            "examenes": examenes,
+            "proximo_control": proximo_control,
+            "sin_proximo_control": sin_proximo_control,
+        }
+
+        if adjuntar_estudios and "estudio_imagen" in request.FILES:
+            historial_defaults["imagenes"] = request.FILES["estudio_imagen"]
 
         HistorialMedico.objects.update_or_create(
             cita=cita,
-            defaults={
-                "paciente": cita.paciente,
-                "veterinario": request.user,
-                "diagnostico": diagnostico,
-                "tratamiento": tratamiento,
-                "notas": notas,
-                "peso": peso,
-                "temperatura": temperatura,
-                "examenes": examenes,
-                "proximo_control": proximo_control,
-            },
+            defaults=historial_defaults,
         )
 
         cita.estado = "atendida"
@@ -1284,7 +1306,11 @@ def atender_cita(request, cita_id):
         )
         return redirect("detalle_cita", cita_id=cita.id)
 
-    return render(request, "core/atender_cita.html", {"cita": cita})
+    return render(
+        request,
+        "core/atender_cita.html",
+        {"cita": cita, "historial_existente": historial_existente},
+    )
 
 
 @login_required
@@ -1436,9 +1462,21 @@ def crear_propietario_admin(request):
                 password=password,
                 rol="OWNER",
             )
-            Propietario.objects.create(
-                user=user, telefono=telefono, direccion=direccion
-            )
+            user.telefono = telefono or ""
+            user.direccion = direccion or ""
+            user.save(update_fields=["telefono", "direccion"])
+
+            propietario, _ = Propietario.objects.get_or_create(user=user)
+            campos_actualizados = []
+            if telefono is not None:
+                propietario.telefono = telefono
+                campos_actualizados.append("telefono")
+            if direccion is not None:
+                propietario.direccion = direccion
+                campos_actualizados.append("direccion")
+            if campos_actualizados:
+                propietario.save(update_fields=campos_actualizados)
+
             messages.success(request, "Propietario creado correctamente ✅")
             return redirect("dashboard")
 
