@@ -133,6 +133,13 @@ class HistorialMedico(models.Model):
     examenes = models.TextField(blank=True)
     imagenes = models.ImageField(upload_to="historial_medico/", blank=True, null=True)
     proximo_control = models.DateField(blank=True, null=True)
+    cita = models.OneToOneField(
+        "Cita",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="historial_medico",
+    )
 
     def __str__(self):
         return f"Historial de {self.paciente.nombre} - {self.fecha.strftime('%d/%m/%Y')}"

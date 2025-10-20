@@ -76,7 +76,7 @@ class CitaAdmin(admin.ModelAdmin):
 # ----------------------------
 @admin.register(HistorialMedico)
 class HistorialMedicoAdmin(admin.ModelAdmin):
-    list_display = ("paciente", "veterinario", "fecha", "diagnostico")
+    list_display = ("paciente", "cita", "veterinario", "fecha", "diagnostico")
     search_fields = ("paciente__nombre", "veterinario__username", "diagnostico")
 
     def get_queryset(self, request):

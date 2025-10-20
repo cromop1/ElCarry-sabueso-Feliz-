@@ -186,7 +186,10 @@ def dashboard(request):
         context["resumen_citas"] = resumen
         context["todas_citas"] = (
             Cita.objects.select_related(
-                "paciente", "paciente__propietario__user", "veterinario"
+                "paciente",
+                "paciente__propietario__user",
+                "veterinario",
+                "historial_medico",
             )
             .order_by("-fecha_solicitada", "-fecha_hora")[:20]
         )
@@ -199,8 +202,12 @@ def dashboard(request):
             else Producto.objects.none()
         )
     elif user.rol == "VET":
-        context["mis_citas"] = Cita.objects.filter(veterinario=user).order_by(
-            "-fecha_hora", "-fecha_solicitada"
+        context["mis_citas"] = (
+            Cita.objects.filter(veterinario=user)
+            .select_related(
+                "paciente", "paciente__propietario__user", "historial_medico"
+            )
+            .order_by("-fecha_hora", "-fecha_solicitada")
         )
         context["mis_historiales"] = HistorialMedico.objects.filter(
             veterinario=user
@@ -512,7 +519,7 @@ def detalle_mascota(request, paciente_id):
 
     citas_qs = (
         Cita.objects.filter(paciente=paciente)
-        .select_related("veterinario")
+        .select_related("veterinario", "historial_medico")
         .order_by("-fecha_solicitada", "-fecha_hora")
     )
     citas = list(citas_qs)
@@ -525,11 +532,22 @@ def detalle_mascota(request, paciente_id):
         historiales_por_fecha.setdefault(fecha_hist.date(), historial)
 
     for cita in citas:
-        fecha_cita = cita.fecha_hora
-        if not fecha_cita:
+        historial_relacionado = getattr(cita, "historial_medico", None)
+        if historial_relacionado:
+            cita.historial_relacionado = historial_relacionado
             continue
-        if timezone.is_aware(fecha_cita):
-            fecha_cita = timezone.localtime(fecha_cita)
+
+        fecha_cita = cita.fecha_hora
+        if fecha_cita:
+            if timezone.is_aware(fecha_cita):
+                fecha_cita = timezone.localtime(fecha_cita)
+        else:
+            fecha_cita = datetime.combine(cita.fecha_solicitada, time.min)
+            if timezone.is_naive(fecha_cita):
+                fecha_cita = timezone.make_aware(
+                    fecha_cita, timezone.get_current_timezone()
+                )
+
         cita.historial_relacionado = historiales_por_fecha.get(fecha_cita.date())
 
     ahora = timezone.now()
@@ -573,6 +591,20 @@ def registrar_historial(request, paciente_id):
         messages.error(request, "No tienes permiso para registrar historial médico.")
         return redirect("dashboard")
 
+    cita_asociada = None
+    cita_id_param = request.GET.get("cita") or request.POST.get("cita_id")
+    if cita_id_param:
+        try:
+            cita_asociada = Cita.objects.select_related("paciente").get(
+                id=cita_id_param, paciente=paciente
+            )
+        except Cita.DoesNotExist:
+            cita_asociada = None
+            messages.warning(
+                request,
+                "La cita seleccionada no pertenece a este paciente o ya no está disponible.",
+            )
+
     if request.method == "POST":
         diagnostico = request.POST.get("diagnostico")
         tratamiento = request.POST.get("tratamiento")
@@ -582,21 +614,36 @@ def registrar_historial(request, paciente_id):
         examenes = request.POST.get("examenes")
         proximo_control = request.POST.get("proximo_control") or None
 
-        HistorialMedico.objects.create(
-            paciente=paciente,
-            veterinario=request.user,
-            diagnostico=diagnostico,
-            tratamiento=tratamiento,
-            notas=notas,
-            peso=peso,
-            temperatura=temperatura,
-            examenes=examenes,
-            proximo_control=proximo_control,
-        )
+        historial_defaults = {
+            "paciente": paciente,
+            "veterinario": request.user,
+            "diagnostico": diagnostico,
+            "tratamiento": tratamiento,
+            "notas": notas,
+            "peso": peso,
+            "temperatura": temperatura,
+            "examenes": examenes,
+            "proximo_control": proximo_control,
+        }
+
+        if cita_asociada:
+            HistorialMedico.objects.update_or_create(
+                cita=cita_asociada, defaults=historial_defaults
+            )
+            if cita_asociada.estado != "atendida":
+                cita_asociada.estado = "atendida"
+                cita_asociada.save(update_fields=["estado"])
+        else:
+            HistorialMedico.objects.create(**historial_defaults)
+
         messages.success(request, "Historial médico registrado correctamente ✅")
         return redirect("detalle_mascota", paciente_id=paciente.id)
 
-    return render(request, "core/registrar_historial.html", {"paciente": paciente})
+    return render(
+        request,
+        "core/registrar_historial.html",
+        {"paciente": paciente, "cita_asociada": cita_asociada},
+    )
 
 
 @login_required
@@ -680,6 +727,7 @@ def mis_citas(request):
         "paciente",
         "paciente__propietario__user",
         "veterinario",
+        "historial_medico",
     )
 
     queryset = base_queryset
@@ -1002,6 +1050,7 @@ def listar_citas_admin(request):
         "paciente",
         "paciente__propietario__user",
         "veterinario",
+        "historial_medico",
     )
 
     if filtro_estado:
@@ -1206,16 +1255,19 @@ def atender_cita(request, cita_id):
         examenes = request.POST.get("examenes")
         proximo_control = request.POST.get("proximo_control") or None
 
-        HistorialMedico.objects.create(
-            paciente=cita.paciente,
-            veterinario=request.user,
-            diagnostico=diagnostico,
-            tratamiento=tratamiento,
-            notas=notas,
-            peso=peso,
-            temperatura=temperatura,
-            examenes=examenes,
-            proximo_control=proximo_control,
+        HistorialMedico.objects.update_or_create(
+            cita=cita,
+            defaults={
+                "paciente": cita.paciente,
+                "veterinario": request.user,
+                "diagnostico": diagnostico,
+                "tratamiento": tratamiento,
+                "notas": notas,
+                "peso": peso,
+                "temperatura": temperatura,
+                "examenes": examenes,
+                "proximo_control": proximo_control,
+            },
         )
 
         cita.estado = "atendida"
@@ -1243,7 +1295,15 @@ def mis_historiales(request):
 
 @login_required
 def detalle_cita(request, cita_id):
-    cita = get_object_or_404(Cita, id=cita_id)
+    cita = get_object_or_404(
+        Cita.objects.select_related(
+            "paciente",
+            "paciente__propietario__user",
+            "veterinario",
+            "historial_medico",
+        ),
+        id=cita_id,
+    )
 
     if request.user.rol == "OWNER" and cita.paciente.propietario.user != request.user:
         messages.error(request, "No tienes permiso para ver esta cita.")
@@ -1260,22 +1320,26 @@ def detalle_cita(request, cita_id):
                 fecha_cita, timezone.get_current_timezone()
             )
 
-    historial = (
-        HistorialMedico.objects.filter(
-            paciente=cita.paciente, fecha__date=fecha_cita.date()
-        )
-        .order_by("-fecha")
-        .first()
-    )
+    historial = getattr(cita, "historial_medico", None)
 
-    if not historial:
+    if not historial and fecha_cita:
         historial = (
-            HistorialMedico.objects.filter(paciente=cita.paciente)
+            HistorialMedico.objects.filter(
+                paciente=cita.paciente,
+                cita__isnull=True,
+                fecha__date=fecha_cita.date(),
+            )
             .order_by("-fecha")
             .first()
         )
 
-    return render(request, "core/detalle_cita.html", {"cita": cita, "historial": historial})
+    informe_directo = bool(historial and getattr(historial, "cita_id", None) == cita.id)
+
+    return render(
+        request,
+        "core/detalle_cita.html",
+        {"cita": cita, "historial": historial, "informe_directo": informe_directo},
+    )
 
 
 @login_required

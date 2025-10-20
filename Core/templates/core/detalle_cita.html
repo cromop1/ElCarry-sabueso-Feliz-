@@ -44,6 +44,15 @@
             <span class="text-dark fs-5">Informe Médico</span>
         </div>
         <div class="card-body">
+            {% if not informe_directo %}
+            <div class="alert alert-warning rounded-3 mb-4 d-flex align-items-center" role="alert">
+                <i class="bi bi-info-circle-fill me-2 fs-4 text-warning"></i>
+                <div>
+                    Este informe proviene de un registro general de {{ cita.paciente.nombre }} realizado el {{ historial.fecha|date:"d/m/Y H:i" }}.
+                    Si necesitás vincularlo específicamente a esta cita, podés editar el historial desde la ficha clínica.
+                </div>
+            </div>
+            {% endif %}
             <div class="row mb-3">
                 <div class="col-md-6 mb-2">
                     <p class="text-dark"><i class="bi bi-clipboard-fill me-1 text-secondary"></i><strong>Diagnóstico:</strong> {{ historial.diagnostico }}</p>
